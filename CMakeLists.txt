@@ -23,10 +23,9 @@
 ###
 # config
 ###
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MACOSX_RPATH 1)
-include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
-
+set(CMAKE_CXX_STANDARD 11)
 
 ###
 # verbose make
@@ -40,6 +39,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 set(PROJECT tacopie)
 project(${PROJECT} CXX)
 
+find_package(Threads REQUIRED)
 
 ###
 # compilation options
@@ -68,23 +68,16 @@ IF (WIN32)
   add_definitions(-D_UNICODE)
   add_definitions(-DUNICODE)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
-ELSE ()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -W -Wall -Wextra -O3")
 ENDIF (WIN32)
 
 
 ###
 # variables
 ###
-set(DEPS_INCLUDES ${PROJECT_SOURCE_DIR}/deps/include)
-set(DEPS_LIBRARIES ${PROJECT_SOURCE_DIR}/deps/lib)
+#set(DEPS_INCLUDES ${PROJECT_SOURCE_DIR}/deps/include)
+#set(DEPS_LIBRARIES ${PROJECT_SOURCE_DIR}/deps/lib)
 set(TACOPIE_INCLUDES ${PROJECT_SOURCE_DIR}/includes)
 
-
-###
-# includes
-###
-include_directories(${TACOPIE_INCLUDES})
 
 ###
 # sources
@@ -121,6 +114,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ###
 add_library(${PROJECT} ${SOURCES})
 set_property(TARGET ${PROJECT} PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_include_directories(${PROJECT} PUBLIC        
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/includes>)
+if(NOT WIN32)
+  target_compile_options(${PROJECT} PRIVATE "-W;-Wall;-Wextra;-O3")
+endif()
 
 IF (WIN32)
    set_target_properties(${PROJECT}
@@ -131,7 +129,7 @@ ENDIF (WIN32)
 IF (WIN32)
   target_link_libraries(${PROJECT} ws2_32)
 ELSE ()
-  target_link_libraries(${PROJECT} pthread)
+  target_link_libraries(${PROJECT} Threads::Threads)
 ENDIF (WIN32)
 
 # __TACOPIE_LOGGING_ENABLED
@@ -161,10 +159,21 @@ ENDIF(SELECT_TIMEOUT)
 # ensure lib and bin directories exist
 install(CODE "FILE(MAKE_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})")
 install(CODE "FILE(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})")
-# install tacopie
-install(DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/ DESTINATION lib USE_SOURCE_PERMISSIONS)
-install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ DESTINATION bin USE_SOURCE_PERMISSIONS)
+
+# Create an install target
 install(DIRECTORY ${TACOPIE_INCLUDES}/ DESTINATION include USE_SOURCE_PERMISSIONS)
+
+install(TARGETS ${PROJECT}
+        EXPORT ${PROJECT}-config
+        ARCHIVE DESTINATION lib/
+        LIBRARY DESTINATION lib/
+        RUNTIME DESTINATION lib/
+        INCLUDES DESTINATION include)
+
+install(EXPORT ${PROJECT}-config
+        FILE ${PROJECT}-config.cmake
+        NAMESPACE ${PROJECT}::
+        DESTINATION share/${PROJECT}/cmake)
 
 
 ###
@@ -180,7 +189,4 @@ ENDIF(BUILD_EXAMPLES)
 ###
 IF (BUILD_TESTS)
   add_subdirectory(tests)
-  ExternalProject_Add("googletest"
-                      GIT_REPOSITORY "https://github.com/google/googletest.git"
-                      CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${PROJECT_SOURCE_DIR}/deps")
 ENDIF(BUILD_TESTS)

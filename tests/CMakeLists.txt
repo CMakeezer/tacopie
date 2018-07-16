@@ -26,25 +26,15 @@
 set(PROJECT tacopie_tests)
 project(${PROJECT} CXX)
 
+find_package(GTest REQUIRED)
 
 ###
 # compilation options
 ###
 IF (NOT WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  set(CMAKE_CXX_STANDARD 14)
 ENDIF (NOT WIN32)
 
-
-###
-# includes
-###
-include_directories(${DEPS_INCLUDES} ${TACOPIE_INCLUDES})
-
-
-###
-# libraries
-###
-link_directories(${DEPS_LIBRARIES})
 
 
 ###
@@ -65,10 +55,10 @@ endforeach()
 ###
 add_executable(${PROJECT} ${SOURCES})
 
-target_link_libraries(${PROJECT} tacopie gtest)
+target_link_libraries(${PROJECT} tacopie GTest::GTest GTest::Main)
 
 IF (WIN32)
   target_link_libraries(${PROJECT} ws2_32)
 ELSE ()
-  target_link_libraries(${PROJECT} pthread)
+  target_link_libraries(${PROJECT} Threads::Threads)
 ENDIF (WIN32)
