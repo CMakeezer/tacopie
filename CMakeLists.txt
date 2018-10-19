@@ -44,8 +44,10 @@ find_package(Threads REQUIRED)
 ###
 # compilation options
 ###
-IF (WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /O2 /bigobj")
+IF (MSVC)
+  if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /O2 /bigobj")
+  endif()
 
   # was causing conflics with gtest build
   string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
